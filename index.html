@@ -15,10 +15,7 @@
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
-    <link
-      rel="apple-touch-icon"
-      href="https://cdn-icons-png.flaticon.com/512/2809/2809623.png"
-    />
+    <link rel="apple-touch-icon" id="apple-icon" href="" />
 
     <!-- Carregamento de Bibliotecas -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -44,6 +41,8 @@
         height: 100vh;
         height: 100dvh;
         overflow: hidden;
+        /* Previne o efeito 'elástico' no ecrã de telemóvel ao arrastar */
+        overscroll-behavior-y: none;
         -webkit-tap-highlight-color: transparent;
       }
 
@@ -679,6 +678,25 @@
         { val: 6, label: "Sextinas" },
       ];
 
+      // Novo Ícone Vetorial de Baquetas (Independente de internet para o PWA)
+      const DRUMSTICKS_SVG =
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(
+          `
+            <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                <rect width="512" height="512" fill="#0f172a" rx="112"/>
+                <g transform="rotate(45 256 256)">
+                    <rect x="240" y="100" width="24" height="312" fill="#f97316" rx="12"/>
+                    <ellipse cx="252" cy="85" rx="16" ry="24" fill="#f97316"/>
+                </g>
+                <g transform="rotate(-45 256 256)">
+                    <rect x="240" y="100" width="24" height="312" fill="#f97316" rx="12"/>
+                    <ellipse cx="252" cy="85" rx="16" ry="24" fill="#f97316"/>
+                </g>
+            </svg>
+        `.trim(),
+        );
+
       function App() {
         const [activeRudiment, setActiveRudiment] = useState(RUDIMENTS[0]);
         const [selectedCat, setSelectedCat] = useState("Todos");
@@ -688,7 +706,7 @@
         const [strokeIndex, setStrokeIndex] = useState(-1);
         const [sound, setSound] = useState(true);
         const [showInstall, setShowInstall] = useState(false);
-        const [isMenuOpen, setIsMenuOpen] = useState(false); // Estado para o Menu Mobile
+        const [isMenuOpen, setIsMenuOpen] = useState(false);
 
         const audioCtx = useRef(null);
         const timer = useRef(null);
@@ -702,10 +720,52 @@
         useEffect(() => {
           const hideLoader = () => document.body.classList.add("loaded");
           const t = setTimeout(hideLoader, 300);
+
+          // Configura as Baquetas no PWA Manifest dinâmico
+          document.getElementById("apple-icon").href = DRUMSTICKS_SVG;
           window.addEventListener("beforeinstallprompt", (e) => {
             e.preventDefault();
             window.deferredPrompt = e;
           });
+
+          // Service Worker Fallback
+          try {
+            if ("serviceWorker" in navigator) {
+              const blob = new Blob(
+                ["self.addEventListener('fetch', ()=>{})"],
+                { type: "text/javascript" },
+              );
+              navigator.serviceWorker
+                .register(URL.createObjectURL(blob))
+                .catch(() => {});
+            }
+          } catch (e) {}
+
+          // Injeta o manifesto com o ícone de baquetas
+          const manifest = {
+            name: "Drum Studio Pro",
+            short_name: "DrumPro",
+            start_url: ".",
+            display: "standalone",
+            background_color: "#0f172a",
+            theme_color: "#f97316",
+            icons: [
+              {
+                src: DRUMSTICKS_SVG,
+                sizes: "512x512",
+                type: "image/svg+xml",
+                purpose: "any maskable",
+              },
+            ],
+          };
+          const manifestBlob = new Blob([JSON.stringify(manifest)], {
+            type: "application/json",
+          });
+          const link = document.createElement("link");
+          link.rel = "manifest";
+          link.href = URL.createObjectURL(manifestBlob);
+          document.head.appendChild(link);
+
           return () => clearTimeout(t);
         }, []);
 
@@ -870,7 +930,7 @@
           setActiveRudiment(r);
           setCurrentSub(r.sub);
           setIsPlaying(false);
-          setIsMenuOpen(false); // Fecha o menu no telemóvel ao selecionar
+          setIsMenuOpen(false);
         };
 
         const filtered =
@@ -1008,7 +1068,8 @@
                   ))}
                 </div>
 
-                <div className='flex flex-wrap justify-center gap-2 sm:gap-3 md:gap-4 lg:gap-5 w-full max-w-5xl overflow-y-auto no-scrollbar py-2 px-2'>
+                {/* CONTAINER FIXO SEM SCROLL INTERNO PARA PREVENIR EFEITO BOUNCE */}
+                <div className='flex flex-wrap justify-center gap-2 sm:gap-3 md:gap-4 lg:gap-5 w-full max-w-5xl py-2 px-2'>
                   {activeRudiment.sticking.map((s, i) => {
                     const active = i === strokeIndex;
 
