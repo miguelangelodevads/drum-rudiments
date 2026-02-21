@@ -1,0 +1,1129 @@
+<!doctype html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Drum Rudiments Pro</title>
+
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <link
+      rel="apple-touch-icon"
+      href="https://cdn-icons-png.flaticon.com/512/2809/2809623.png"
+    />
+
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap");
+
+      :root {
+        --sat: env(safe-area-inset-top);
+        --sab: env(safe-area-inset-bottom);
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #020617;
+        color: white;
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      #loader {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #020617;
+        z-index: 9999;
+        transition: opacity 0.5s ease;
+      }
+      .loaded #loader {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid #1e293b;
+        border-top: 3px solid #f97316;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      input[type="range"] {
+        -webkit-appearance: none;
+        background: transparent;
+        width: 100%;
+        cursor: pointer;
+      }
+      input[type="range"]::-webkit-slider-runnable-track {
+        height: 6px;
+        background: #1e293b;
+        border-radius: 10px;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 20px;
+        width: 20px;
+        border-radius: 50%;
+        background: #f97316;
+        margin-top: -7px;
+        box-shadow: 0 0 10px rgba(249, 115, 22, 0.4);
+      }
+
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      @media (max-height: 600px) {
+        .hide-on-short {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loader">
+      <div class="spinner"></div>
+      <div
+        style="
+          margin-top: 16px;
+          font-weight: 900;
+          letter-spacing: 0.2em;
+          color: #f97316;
+          font-size: 10px;
+        "
+      >
+        DRUM STUDIO PRO
+      </div>
+    </div>
+
+    <div id="root" class="h-full"></div>
+
+    <script type="text/babel">
+      const { useState, useEffect, useRef, useCallback } = React;
+
+      const Icon = ({ name, size = 24, className = "" }) => {
+        const iconRef = useRef(null);
+        useEffect(() => {
+          if (window.lucide && iconRef.current) {
+            const iconData = window.lucide.icons[name];
+            if (iconData) {
+              const svg = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "svg",
+              );
+              svg.setAttribute("width", size);
+              svg.setAttribute("height", size);
+              svg.setAttribute("viewBox", "0 0 24 24");
+              svg.setAttribute("fill", "none");
+              svg.setAttribute("stroke", "currentColor");
+              svg.setAttribute("stroke-width", "2.5");
+              svg.setAttribute("stroke-linecap", "round");
+              svg.setAttribute("stroke-linejoin", "round");
+              if (className) svg.classList.add(...className.split(" "));
+
+              iconData[2].forEach(([tag, attrs]) => {
+                const el = document.createElementNS(
+                  "http://www.w3.org/2000/svg",
+                  tag,
+                );
+                Object.entries(attrs).forEach(([k, v]) =>
+                  el.setAttribute(k, v),
+                );
+                svg.appendChild(el);
+              });
+              iconRef.current.innerHTML = "";
+              iconRef.current.appendChild(svg);
+            }
+          }
+        }, [name, size, className]);
+        return <span ref={iconRef} className='inline-flex items-center'></span>;
+      };
+
+      // Base de Dados Otimizada com Fórmulas de Compasso, Pausas ('-') e Durações relativas (dur)
+      // O valor 'dur' multiplica a subdivisão base para criar notas mais longas (ex: se sub=4 [semicolcheia], dur=2 é uma colcheia)
+      const RUDIMENTS = [
+        // Rulos
+        {
+          id: "1",
+          name: "Single Stroke Roll",
+          sticking: ["R", "L", "R", "L", "R", "L", "R", "L"],
+          cat: "Rulos",
+          sub: 4,
+          time: "2/4",
+        },
+        {
+          id: "2",
+          name: "Single Stroke Four",
+          sticking: ["R", "L", "R", "L", "-"],
+          cat: "Rulos",
+          sub: 4,
+          time: "2/4",
+          dur: [1, 1, 1, 1, 4],
+        },
+        {
+          id: "3",
+          name: "Single Stroke Seven",
+          sticking: ["R", "L", "R", "L", "R", "L", "R", "-"],
+          cat: "Rulos",
+          sub: 6,
+          time: "2/4",
+          dur: [1, 1, 1, 1, 1, 1, 3, 3],
+        },
+        {
+          id: "4",
+          name: "Multiple Bounce Roll",
+          sticking: ["R", "L", "R", "L", "R", "L", "R", "L"],
+          cat: "Rulos",
+          sub: 4,
+          time: "2/4",
+        },
+        {
+          id: "5",
+          name: "Triple Stroke Roll",
+          sticking: ["R", "R", "R", "L", "L", "L"],
+          cat: "Rulos",
+          sub: 3,
+          time: "2/4",
+        },
+        {
+          id: "6",
+          name: "Double Stroke Roll",
+          sticking: ["R", "R", "L", "L", "R", "R", "L", "L"],
+          cat: "Rulos",
+          sub: 4,
+          time: "2/4",
+        },
+        {
+          id: "7",
+          name: "Five Stroke Roll",
+          sticking: ["R", "R", "L", "L", "R", "-"],
+          cat: "Rulos",
+          sub: 4,
+          time: "2/4",
+          dur: [1, 1, 1, 1, 2, 2],
+        },
+        {
+          id: "8",
+          name: "Six Stroke Roll",
+          sticking: ["R", "L", "L", "R", "R", "L"],
+          cat: "Rulos",
+          sub: 6,
+          time: "2/4",
+          dur: [2, 1, 1, 1, 1, 6],
+        },
+        {
+          id: "9",
+          name: "Seven Stroke Roll",
+          sticking: ["R", "R", "L", "L", "R", "R", "L", "-"],
+          cat: "Rulos",
+          sub: 4,
+          time: "2/4",
+          dur: [1, 1, 1, 1, 1, 1, 2, 8],
+        },
+        {
+          id: "10",
+          name: "Nine Stroke Roll",
+          sticking: ["R", "R", "L", "L", "R", "R", "L", "L", "R", "-"],
+          cat: "Rulos",
+          sub: 4,
+          time: "4/4",
+          dur: [1, 1, 1, 1, 1, 1, 1, 1, 4, 4],
+        },
+        {
+          id: "11",
+          name: "Ten Stroke Roll",
+          sticking: ["R", "R", "L", "L", "R", "R", "L", "L", "R", "L", "-"],
+          cat: "Rulos",
+          sub: 4,
+          time: "4/4",
+          dur: [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 4],
+        },
+        {
+          id: "12",
+          name: "Eleven Stroke Roll",
+          sticking: [
+            "R",
+            "R",
+            "L",
+            "L",
+            "R",
+            "R",
+            "L",
+            "L",
+            "R",
+            "R",
+            "L",
+            "-",
+          ],
+          cat: "Rulos",
+          sub: 6,
+          time: "2/4",
+          dur: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 12],
+        },
+        {
+          id: "13",
+          name: "Thirteen Stroke Roll",
+          sticking: [
+            "R",
+            "R",
+            "L",
+            "L",
+            "R",
+            "R",
+            "L",
+            "L",
+            "R",
+            "R",
+            "L",
+            "L",
+            "R",
+            "-",
+          ],
+          cat: "Rulos",
+          sub: 6,
+          time: "4/4",
+          dur: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 6, 6],
+        },
+        {
+          id: "14",
+          name: "Fifteen Stroke Roll",
+          sticking: [
+            "R",
+            "R",
+            "L",
+            "L",
+            "R",
+            "R",
+            "L",
+            "L",
+            "R",
+            "R",
+            "L",
+            "L",
+            "R",
+            "R",
+            "L",
+            "-",
+          ],
+          cat: "Rulos",
+          sub: 4,
+          time: "4/4",
+          dur: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 16],
+        },
+        {
+          id: "15",
+          name: "Seventeen Stroke Roll",
+          sticking: [
+            "R",
+            "R",
+            "L",
+            "L",
+            "R",
+            "R",
+            "L",
+            "L",
+            "R",
+            "R",
+            "L",
+            "L",
+            "R",
+            "R",
+            "L",
+            "L",
+            "R",
+            "-",
+          ],
+          cat: "Rulos",
+          sub: 4,
+          time: "4/4",
+          dur: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8, 8],
+        },
+
+        // Paradiddles
+        {
+          id: "16",
+          name: "Single Paradiddle",
+          sticking: ["R", "L", "R", "R", "L", "R", "L", "L"],
+          cat: "Paradiddles",
+          sub: 4,
+          time: "2/4",
+        },
+        {
+          id: "17",
+          name: "Double Paradiddle",
+          sticking: [
+            "R",
+            "L",
+            "R",
+            "L",
+            "R",
+            "R",
+            "L",
+            "R",
+            "L",
+            "R",
+            "L",
+            "L",
+          ],
+          cat: "Paradiddles",
+          sub: 6,
+          time: "2/4",
+        },
+        {
+          id: "18",
+          name: "Triple Paradiddle",
+          sticking: [
+            "R",
+            "L",
+            "R",
+            "L",
+            "R",
+            "L",
+            "R",
+            "R",
+            "L",
+            "R",
+            "L",
+            "R",
+            "L",
+            "R",
+            "L",
+            "L",
+          ],
+          cat: "Paradiddles",
+          sub: 4,
+          time: "4/4",
+        },
+        {
+          id: "19",
+          name: "Single Paradiddle-Diddle",
+          sticking: [
+            "R",
+            "L",
+            "R",
+            "R",
+            "L",
+            "L",
+            "L",
+            "R",
+            "L",
+            "L",
+            "R",
+            "R",
+          ],
+          cat: "Paradiddles",
+          sub: 6,
+          time: "2/4",
+        },
+
+        // Flams
+        {
+          id: "20",
+          name: "Flam",
+          sticking: ["lR", "rL"],
+          cat: "Flams",
+          sub: 2,
+          time: "2/4",
+        },
+        {
+          id: "21",
+          name: "Flam Accent",
+          sticking: ["lR", "L", "R", "rL", "R", "L"],
+          cat: "Flams",
+          sub: 3,
+          time: "2/4",
+        },
+        {
+          id: "22",
+          name: "Flam Tap",
+          sticking: ["lR", "R", "rL", "L"],
+          cat: "Flams",
+          sub: 2,
+          time: "2/4",
+        },
+        {
+          id: "23",
+          name: "Flamacue",
+          sticking: ["lR", "L", "R", "L", "lR", "rL", "R", "L", "R", "rL"],
+          cat: "Flams",
+          sub: 4,
+          time: "5/4",
+          dur: [1, 1, 1, 1, 4, 1, 1, 1, 1, 4],
+        },
+        {
+          id: "24",
+          name: "Flam Paradiddle",
+          sticking: ["lR", "L", "R", "R", "rL", "R", "L", "L"],
+          cat: "Flams",
+          sub: 4,
+          time: "2/4",
+        },
+        {
+          id: "25",
+          name: "Single Flammed Mill",
+          sticking: ["lR", "R", "L", "R", "rL", "L", "R", "L"],
+          cat: "Flams",
+          sub: 4,
+          time: "2/4",
+        },
+        {
+          id: "26",
+          name: "Flam Paradiddle-Diddle",
+          sticking: [
+            "lR",
+            "L",
+            "R",
+            "R",
+            "L",
+            "L",
+            "rL",
+            "R",
+            "L",
+            "L",
+            "R",
+            "R",
+          ],
+          cat: "Flams",
+          sub: 6,
+          time: "2/4",
+        },
+        {
+          id: "27",
+          name: "Pataflafla",
+          sticking: ["lR", "R", "L", "rL", "rL", "L", "R", "lR"],
+          cat: "Flams",
+          sub: 4,
+          time: "2/4",
+        },
+        {
+          id: "28",
+          name: "Swiss Army Triplet",
+          sticking: ["lR", "R", "L", "rL", "L", "R"],
+          cat: "Flams",
+          sub: 3,
+          time: "2/4",
+        },
+        {
+          id: "29",
+          name: "Inverted Flam Tap",
+          sticking: ["lR", "L", "rL", "R"],
+          cat: "Flams",
+          sub: 2,
+          time: "2/4",
+        },
+        {
+          id: "30",
+          name: "Flam Drag",
+          sticking: ["lR", "llR", "L", "rL", "rrL", "R"],
+          cat: "Flams",
+          sub: 3,
+          time: "2/4",
+        },
+
+        // Drags (Ratamacues reajustados para a rítmica perfeita)
+        {
+          id: "31",
+          name: "Drag",
+          sticking: ["llR", "rrL"],
+          cat: "Drags",
+          sub: 2,
+          time: "2/4",
+        },
+        {
+          id: "32",
+          name: "Single Drag Tap",
+          sticking: ["llR", "L", "rrL", "R"],
+          cat: "Drags",
+          sub: 2,
+          time: "2/4",
+        },
+        {
+          id: "33",
+          name: "Double Drag Tap",
+          sticking: ["llR", "llR", "L", "rrL", "rrL", "R"],
+          cat: "Drags",
+          sub: 4,
+          time: "4/4",
+          dur: [2, 2, 4, 2, 2, 4],
+        },
+        {
+          id: "34",
+          name: "Lesson 25",
+          sticking: ["llR", "L", "R", "rrL", "R", "L"],
+          cat: "Drags",
+          sub: 4,
+          time: "2/4",
+          dur: [1, 1, 2, 1, 1, 2],
+        },
+        {
+          id: "35",
+          name: "Single Dragadiddle",
+          sticking: ["llR", "L", "R", "R", "rrL", "R", "L", "L"],
+          cat: "Drags",
+          sub: 4,
+          time: "2/4",
+        },
+        {
+          id: "36",
+          name: "Drag Paradiddle #1",
+          sticking: ["R", "llR", "L", "R", "R", "L", "rrL", "R", "L", "L"],
+          cat: "Drags",
+          sub: 4,
+          time: "4/4",
+          dur: [2, 1, 1, 2, 2, 2, 1, 1, 2, 2],
+        },
+        {
+          id: "37",
+          name: "Drag Paradiddle #2",
+          sticking: [
+            "R",
+            "llR",
+            "llR",
+            "L",
+            "R",
+            "R",
+            "L",
+            "rrL",
+            "rrL",
+            "R",
+            "L",
+            "L",
+          ],
+          cat: "Drags",
+          sub: 4,
+          time: "6/4",
+          dur: [2, 2, 1, 1, 2, 2, 2, 2, 1, 1, 2, 2],
+        },
+        {
+          id: "38",
+          name: "Single Ratamacue",
+          sticking: ["llR", "L", "R", "L", "rrL", "R", "L", "R"],
+          cat: "Drags",
+          sub: 4,
+          time: "2/4",
+          dur: [1, 1, 2, 4, 1, 1, 2, 4],
+        },
+        {
+          id: "39",
+          name: "Double Ratamacue",
+          sticking: ["llR", "llR", "L", "R", "L", "rrL", "rrL", "R", "L", "R"],
+          cat: "Drags",
+          sub: 4,
+          time: "3/4",
+          dur: [2, 2, 1, 1, 6, 2, 2, 1, 1, 6],
+        },
+        {
+          id: "40",
+          name: "Triple Ratamacue",
+          sticking: [
+            "llR",
+            "llR",
+            "llR",
+            "L",
+            "R",
+            "L",
+            "rrL",
+            "rrL",
+            "rrL",
+            "R",
+            "L",
+            "R",
+          ],
+          cat: "Drags",
+          sub: 4,
+          time: "4/4",
+          dur: [2, 2, 2, 1, 1, 8, 2, 2, 2, 1, 1, 8],
+        },
+      ];
+
+      const CATEGORIES = ["Todos", "Rulos", "Paradiddles", "Flams", "Drags"];
+
+      const SUBDIVISIONS = [
+        { val: 2, label: "8ªs" },
+        { val: 3, label: "Tercinas" },
+        { val: 4, label: "16ªs" },
+        { val: 6, label: "Sextinas" },
+      ];
+
+      function App() {
+        const [activeRudiment, setActiveRudiment] = useState(RUDIMENTS[0]);
+        const [selectedCat, setSelectedCat] = useState("Todos");
+        const [currentSub, setCurrentSub] = useState(RUDIMENTS[0].sub);
+        const [bpm, setBpm] = useState(100);
+        const [isPlaying, setIsPlaying] = useState(false);
+        const [strokeIndex, setStrokeIndex] = useState(-1);
+        const [sound, setSound] = useState(true);
+        const [showInstall, setShowInstall] = useState(false);
+
+        const audioCtx = useRef(null);
+        const timer = useRef(null);
+
+        // Relógios Independentes para Metrónomo e Bateria
+        const nextMetronomeTime = useRef(0);
+        const nextNoteTime = useRef(0);
+
+        const currentBeatCount = useRef(0); // Conta pulsações de compasso
+        const currentNote = useRef(0); // Conta notas do rudimento
+        const queue = useRef([]);
+        const wakeLock = useRef(null);
+
+        useEffect(() => {
+          const hideLoader = () => document.body.classList.add("loaded");
+          const t = setTimeout(hideLoader, 300);
+          window.addEventListener("beforeinstallprompt", (e) => {
+            e.preventDefault();
+            window.deferredPrompt = e;
+          });
+          return () => clearTimeout(t);
+        }, []);
+
+        const handleWakeLock = async (on) => {
+          if (!("wakeLock" in navigator)) return;
+          try {
+            if (on)
+              wakeLock.current = await navigator.wakeLock.request("screen");
+            else if (wakeLock.current) {
+              await wakeLock.current.release();
+              wakeLock.current = null;
+            }
+          } catch (e) {}
+        };
+
+        const playMetronome = (time, isFirstInCycle) => {
+          if (!sound || !audioCtx.current) return;
+          const ctx = audioCtx.current;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.type = "square";
+          // UM = Agudo, Resto = Grave
+          osc.frequency.setValueAtTime(isFirstInCycle ? 1200 : 800, time);
+          osc.frequency.exponentialRampToValueAtTime(10, time + 0.05);
+
+          gain.gain.setValueAtTime(isFirstInCycle ? 0.6 : 0.3, time);
+          gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+
+          osc.start(time);
+          osc.stop(time + 0.05);
+        };
+
+        const playDrumStroke = (time, type, isStrongBeat) => {
+          if (!sound || !audioCtx.current) return;
+          const ctx = audioCtx.current;
+
+          // Tone (Corpo da Tarola)
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(type === "R" ? 220 : 250, time);
+          osc.frequency.exponentialRampToValueAtTime(40, time + 0.1);
+
+          const vol = type === "grace" ? 0.2 : isStrongBeat ? 0.9 : 0.6;
+          gain.gain.setValueAtTime(vol, time);
+          gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+
+          osc.start(time);
+          osc.stop(time + 0.15);
+
+          // Ruído (Esteira da Tarola)
+          const bufferSize = ctx.sampleRate * 0.12;
+          const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+          const noise = ctx.createBufferSource();
+          noise.buffer = buffer;
+
+          const filter = ctx.createBiquadFilter();
+          filter.type = "highpass";
+          filter.frequency.value = 1500;
+
+          const noiseGain = ctx.createGain();
+          noise.connect(filter);
+          filter.connect(noiseGain);
+          noiseGain.connect(ctx.destination);
+
+          const nVol = type === "grace" ? 0.1 : isStrongBeat ? 0.5 : 0.3;
+          noiseGain.gain.setValueAtTime(nVol, time);
+          noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
+
+          noise.start(time);
+        };
+
+        const scheduler = useCallback(() => {
+          const now = audioCtx.current.currentTime;
+
+          while (queue.current.length && queue.current[0].time <= now) {
+            setStrokeIndex(queue.current.shift().index);
+          }
+
+          // 1. GESTÃO DO METRÓNOMO (Compasso Perfeito)
+          const beatDuration = 60.0 / bpm; // 1 Semínima (Quarter note)
+          const beatsPerMeasure = parseInt(
+            activeRudiment.time.split("/")[0],
+            10,
+          );
+
+          while (nextMetronomeTime.current < now + 0.1) {
+            const isFirstInCycle =
+              currentBeatCount.current % beatsPerMeasure === 0;
+            playMetronome(nextMetronomeTime.current, isFirstInCycle);
+            nextMetronomeTime.current += beatDuration;
+            currentBeatCount.current++;
+          }
+
+          // 2. GESTÃO DO RUDIMENTO (Baseado nas durações de cada toque)
+          const baseStepDuration = beatDuration / currentSub;
+          const durArray = activeRudiment.dur || [];
+
+          while (nextNoteTime.current < now + 0.1) {
+            const strokeIdx =
+              currentNote.current % activeRudiment.sticking.length;
+            const strokeString = activeRudiment.sticking[strokeIdx];
+            const noteDur = durArray[strokeIdx] || 1; // Quantos "steps" este toque dura
+
+            if (strokeString !== "-") {
+              const chars = strokeString.split("");
+              const primary = chars.pop();
+              const graces = chars;
+
+              graces.forEach((g, idx) => {
+                if (g !== "-") {
+                  const graceTime = Math.max(
+                    now,
+                    nextNoteTime.current - 0.04 + idx * 0.015,
+                  );
+                  playDrumStroke(graceTime, "grace", false);
+                }
+              });
+
+              // Considera acento se a nota durar pelo menos 1 pulsação completa
+              const isStrongBeat = noteDur >= currentSub;
+              playDrumStroke(nextNoteTime.current, primary, isStrongBeat);
+            }
+
+            queue.current.push({
+              time: nextNoteTime.current,
+              index: strokeIdx,
+            });
+
+            nextNoteTime.current += baseStepDuration * noteDur;
+            currentNote.current++;
+          }
+
+          timer.current = requestAnimationFrame(scheduler);
+        }, [bpm, activeRudiment, sound, currentSub]);
+
+        useEffect(() => {
+          if (isPlaying) {
+            audioCtx.current = new (
+              window.AudioContext || window.webkitAudioContext
+            )();
+            const startTime = audioCtx.current.currentTime + 0.05;
+            nextMetronomeTime.current = startTime;
+            nextNoteTime.current = startTime;
+            currentNote.current = 0;
+            currentBeatCount.current = 0;
+            queue.current = [];
+            timer.current = requestAnimationFrame(scheduler);
+            handleWakeLock(true);
+          } else {
+            cancelAnimationFrame(timer.current);
+            setStrokeIndex(-1);
+            handleWakeLock(false);
+          }
+          return () => cancelAnimationFrame(timer.current);
+        }, [isPlaying, scheduler]);
+
+        const changeRudiment = (r) => {
+          setActiveRudiment(r);
+          setCurrentSub(r.sub);
+          setIsPlaying(false);
+        };
+
+        const filtered =
+          selectedCat === "Todos"
+            ? RUDIMENTS
+            : RUDIMENTS.filter((r) => r.cat === selectedCat);
+
+        return (
+          <div className='flex flex-col md:flex-row h-full w-full bg-slate-950 overflow-hidden pt-[var(--sat)] pb-[var(--sab)]'>
+            {/* Sidebar / Menu Superior */}
+            <aside className='w-full md:w-64 lg:w-72 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col shrink-0 max-h-[30%] md:max-h-full z-20'>
+              <div className='p-3 md:p-6 border-b border-slate-800 flex items-center justify-between shrink-0'>
+                <div className='flex items-center gap-2'>
+                  <Icon name='BookOpen' className='text-orange-500' size={18} />
+                  <span className='font-black uppercase italic tracking-tighter text-[10px] md:text-sm lg:text-base'>
+                    Drum Studio
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowInstall(true)}
+                  className='p-1.5 bg-orange-500 rounded-md'
+                >
+                  <Icon name='Download' size={14} />
+                </button>
+              </div>
+
+              <div className='p-2 flex gap-1.5 overflow-x-auto no-scrollbar shrink-0 bg-slate-900/50'>
+                {CATEGORIES.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setSelectedCat(c)}
+                    className={`px-2.5 py-1 rounded-full text-[8px] md:text-[9px] font-black uppercase whitespace-nowrap transition-colors ${selectedCat === c ? "bg-orange-500 text-white" : "bg-slate-800 text-slate-500"}`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+
+              <div className='flex-1 overflow-y-auto no-scrollbar p-2 md:p-3 space-y-1'>
+                {filtered.map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => changeRudiment(r)}
+                    className={`w-full text-left p-2.5 md:p-4 rounded-lg md:rounded-xl border-l-4 transition-all ${activeRudiment.id === r.id ? "bg-slate-800 border-orange-500" : "border-transparent hover:bg-slate-800/40"}`}
+                  >
+                    <div className='font-bold text-[10px] md:text-xs text-slate-200 truncate'>
+                      {r.id}. {r.name}
+                    </div>
+                    <div className='text-[7px] md:text-[8px] font-black text-slate-600 uppercase mt-0.5 tracking-tighter flex justify-between items-center'>
+                      <span>{r.cat}</span>
+                      <span className='text-orange-500 bg-orange-500/10 px-1.5 rounded'>
+                        {r.time}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </aside>
+
+            {/* Área Principal */}
+            <main className='flex-1 flex flex-col relative bg-[radial-gradient(circle_at_center,_#1e293b_0%,_#020617_100%)] min-h-0'>
+              <div className='absolute top-3 right-3 z-10'>
+                <button
+                  onClick={() => setSound(!sound)}
+                  className='p-2.5 bg-slate-800/50 backdrop-blur-md rounded-lg border border-white/5 shadow-xl transition-transform active:scale-90'
+                  title='Ativar/Desativar Som'
+                >
+                  <Icon
+                    name={sound ? "Volume2" : "VolumeX"}
+                    className={sound ? "text-white" : "text-red-500"}
+                    size={16}
+                  />
+                </button>
+              </div>
+
+              <div className='flex-1 flex flex-col items-center justify-center p-4 md:p-8 min-h-0'>
+                <div className='text-orange-500/80 text-[10px] md:text-xs font-black tracking-[0.4em] uppercase mb-2 flex items-center gap-2'>
+                  <span>Treino Ativo</span>
+                  <span className='bg-orange-500 text-white px-2 py-0.5 rounded text-[8px] tracking-widest'>
+                    {activeRudiment.time}
+                  </span>
+                </div>
+                <h2 className='text-lg md:text-3xl lg:text-4xl font-black text-center mb-4 tracking-tighter uppercase leading-tight max-w-[90%]'>
+                  {activeRudiment.name}
+                </h2>
+
+                {/* Selector de Subdivisão (Apenas informativo nas rotinas complexas) */}
+                <div className='flex flex-wrap justify-center gap-1.5 md:gap-2 mb-6 md:mb-10 bg-slate-900/60 p-1 md:p-1.5 rounded-lg md:rounded-2xl border border-slate-800 backdrop-blur-sm'>
+                  {SUBDIVISIONS.map((sub) => (
+                    <button
+                      key={sub.val}
+                      onClick={() => {
+                        setCurrentSub(sub.val);
+                        setIsPlaying(false);
+                      }}
+                      className={`px-3 py-1.5 md:px-4 md:py-2 rounded-md md:rounded-xl text-[8px] md:text-[10px] font-black uppercase transition-all ${currentSub === sub.val ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30" : "text-slate-500 hover:bg-slate-800"}`}
+                    >
+                      {sub.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className='flex flex-wrap justify-center gap-2 md:gap-4 lg:gap-5 w-full max-w-4xl overflow-y-auto no-scrollbar py-2'>
+                  {activeRudiment.sticking.map((s, i) => {
+                    const active = i === strokeIndex;
+
+                    if (s === "-") {
+                      return (
+                        <div
+                          key={i}
+                          className={`relative flex items-center justify-center w-4 md:w-8 transition-all ${active ? "opacity-100 scale-125 text-orange-500" : "opacity-20 text-slate-500"}`}
+                        >
+                          <span className='text-sm md:text-xl font-black'>
+                            -
+                          </span>
+                        </div>
+                      );
+                    }
+
+                    const isR = s.toUpperCase().includes("R");
+                    return (
+                      <div
+                        key={i}
+                        className={`relative flex items-center justify-center w-8 h-12 sm:w-12 sm:h-20 md:w-16 md:h-24 lg:w-20 lg:h-32 rounded-lg sm:rounded-2xl md:rounded-[1.5rem] border-b-[3px] md:border-b-[6px] transition-all ${active ? (isR ? "bg-orange-500 border-orange-700 -translate-y-1 md:-translate-y-2 shadow-lg shadow-orange-500/50" : "bg-blue-600 border-blue-800 -translate-y-1 md:-translate-y-2 shadow-lg shadow-blue-500/50") : "bg-slate-900 border-slate-800"}`}
+                      >
+                        <span
+                          className={`text-sm sm:text-xl md:text-3xl lg:text-4xl font-black ${active ? "text-white" : isR ? "text-orange-500" : "text-blue-600"}`}
+                        >
+                          {s.length > 1 ? (
+                            <>
+                              <span className='text-[8px] sm:text-[10px] md:text-lg opacity-40 mr-0.5'>
+                                {s.slice(0, -1)}
+                              </span>
+                              {s.slice(-1)}
+                            </>
+                          ) : (
+                            s
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className='mt-6 md:mt-10 flex gap-6 md:gap-10 text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500'>
+                  <div className='flex items-center gap-2'>
+                    <div className='w-2 h-2 md:w-3 md:h-3 bg-orange-500 rounded-sm'></div>{" "}
+                    Direita (R)
+                  </div>
+                  <div className='flex items-center gap-2'>
+                    <div className='w-2 h-2 md:w-3 md:h-3 bg-blue-600 rounded-sm'></div>{" "}
+                    Esquerda (L)
+                  </div>
+                  <div className='flex items-center gap-2'>
+                    <div className='w-2 h-2 md:w-3 md:h-3 bg-slate-700 rounded-full'></div>{" "}
+                    Pausa
+                  </div>
+                </div>
+              </div>
+
+              {/* Painel do Metrónomo */}
+              <div className='px-4 py-4 md:px-10 md:py-8 bg-slate-900/90 backdrop-blur-xl border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-10 shrink-0'>
+                <div className='flex items-center justify-center gap-4 md:gap-6 w-full md:w-auto order-2 md:order-1'>
+                  <button
+                    onClick={() => setBpm(Math.max(40, bpm - 5))}
+                    className='p-2 md:p-3 bg-slate-800 rounded-lg md:rounded-xl active:scale-90 transition-transform'
+                  >
+                    <Icon name='Minus' size={18} />
+                  </button>
+                  <div className='text-center min-w-[70px] md:min-w-[100px]'>
+                    <div className='text-3xl md:text-5xl lg:text-6xl font-black tabular-nums leading-none'>
+                      {bpm}
+                    </div>
+                    <div className='text-[7px] md:text-[9px] text-orange-500 font-bold uppercase tracking-widest mt-1'>
+                      BPM
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setBpm(Math.min(400, bpm + 5))}
+                    className='p-2 md:p-3 bg-slate-800 rounded-lg md:rounded-xl active:scale-90 transition-transform'
+                  >
+                    <Icon name='Plus' size={18} />
+                  </button>
+                </div>
+
+                <div className='w-full md:max-w-xs lg:max-w-md hidden sm:block order-3 md:order-2 px-4'>
+                  <input
+                    type='range'
+                    min='40'
+                    max='400'
+                    value={bpm}
+                    onChange={(e) => setBpm(parseInt(e.target.value))}
+                  />
+                </div>
+
+                <button
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  className={`w-14 h-14 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-xl md:rounded-3xl flex items-center justify-center transition-all duration-500 shadow-2xl active:scale-95 order-1 md:order-3 shrink-0 ${isPlaying ? "bg-red-500 rotate-180" : "bg-orange-500"}`}
+                >
+                  <Icon
+                    name={isPlaying ? "Pause" : "Play"}
+                    size={28}
+                    className='md:w-10 md:h-10'
+                  />
+                </button>
+              </div>
+            </main>
+
+            {/* Modal PWA */}
+            {showInstall && (
+              <div
+                className='fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md'
+                onClick={() => setShowInstall(false)}
+              >
+                <div
+                  className='bg-slate-900 border border-white/10 p-6 md:p-8 rounded-2xl md:rounded-[2rem] max-w-sm w-full text-center shadow-2xl'
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <h3 className='text-lg md:text-xl font-black uppercase mb-4 tracking-tighter'>
+                    Instalar App
+                  </h3>
+                  <div className='space-y-3 text-left text-slate-400 text-[10px] md:text-xs'>
+                    <p className='flex gap-3'>
+                      <span className='text-orange-500 font-bold'>1.</span>{" "}
+                      Clique no menu do seu navegador.
+                    </p>
+                    <p className='flex gap-3'>
+                      <span className='text-orange-500 font-bold'>2.</span>{" "}
+                      Escolha <b>"Adicionar ao Ecrã Principal"</b>.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowInstall(false)}
+                    className='mt-6 w-full py-3 bg-orange-500 text-white rounded-xl font-black uppercase text-[10px] tracking-widest'
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
