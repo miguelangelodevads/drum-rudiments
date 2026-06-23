@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/drum-rudiments/sw.js', { scope: '/drum-rudiments/' })})}

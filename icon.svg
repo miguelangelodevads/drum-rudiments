@@ -1,0 +1,11 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <rect width="512" height="512" fill="#0f172a" rx="112"/>
+    <g transform="rotate(45 256 256)">
+        <rect x="240" y="100" width="24" height="312" fill="#f97316" rx="12"/>
+        <ellipse cx="252" cy="85" rx="16" ry="24" fill="#f97316"/>
+    </g>
+    <g transform="rotate(-45 256 256)">
+        <rect x="240" y="100" width="24" height="312" fill="#f97316" rx="12"/>
+        <ellipse cx="252" cy="85" rx="16" ry="24" fill="#f97316"/>
+    </g>
+</svg>
