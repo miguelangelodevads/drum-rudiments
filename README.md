@@ -1,16 +1,77 @@
-# React + Vite
+# 🥁 Drum Studio
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+### Aplicação web para praticar rudimentos de bateria
 
-Currently, two official plugins are available:
+Projeto que conecta minha experiência como baterista ao
+desenvolvimento de software, reunindo acompanhamento visual,
+metrônomo e reprodução de exercícios no navegador.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Funcionalidades
 
-## React Compiler
+- Seleção de rudimentos e filtro por categoria.
+- Visualização das mãos direita (R), esquerda (L) e pausas.
+- Destaque visual do toque durante a reprodução.
+- Controle de andamento entre 40 e 400 BPM.
+- Seleção de subdivisões rítmicas.
+- Reprodução, pausa e controle de som.
+- Metrônomo e sons sintetizados no navegador.
+- Interface adaptada para celular e computador.
+- Orientações para instalação como aplicativo.
+- Manutenção da tela ativa durante o treino, quando suportada.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tecnologias
 
-## Expanding the ESLint configuration
+| Tecnologia | Aplicação |
+| --- | --- |
+| React | Interface e gerenciamento de estado |
+| JavaScript | Lógica dos exercícios e controles |
+| Web Audio API | Síntese sonora e agendamento do áudio |
+| Vite | Desenvolvimento e build |
+| Lucide React | Ícones |
+| Vite PWA Plugin | Configuração de PWA |
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Decisões técnicas
+
+O áudio utiliza o relógio da Web Audio API para programar
+os sons com antecedência. O acompanhamento visual destaca
+a sequência dos toques durante a execução.
+
+A disponibilidade de áudio, instalação e manutenção da
+tela ativa depende do navegador e das permissões concedidas.
+
+## Executar localmente
+
+Com Node.js e npm instalados:
+
+~~~sh
+git clone https://github.com/miguelangelodevads/drum-rudiments.git
+cd drum-rudiments
+npm install
+npm run dev
+~~~
+
+## Comandos
+
+| Comando | Finalidade |
+| --- | --- |
+| `npm run dev` | Iniciar o ambiente de desenvolvimento |
+| `npm run lint` | Executar análise estática |
+| `npm run build` | Gerar a versão de produção |
+| `npm run preview` | Visualizar o build localmente |
+
+## Organização
+
+- `src/App.jsx`: interface, controles e lógica de áudio.
+- `src/index.css`: estilos.
+- `package.json`: dependências e comandos.
+
+## Estado do projeto
+
+Projeto de portfólio em evolução. Compatibilidade e
+comportamento podem variar entre navegadores.
+
+## Autor
+
+**Miguel Angelo — músico e desenvolvedor de software júnior.**
+
+[Conheça meu portfólio](https://miguel-angelo-portifolio.vercel.app/)
